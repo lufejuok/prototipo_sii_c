@@ -372,6 +372,9 @@ tr.retired td{ color:var(--muted); }
 .st-warn .st-dot{ background:#D9901A; } .st-ok .st-dot{ background:var(--ok); }
 .p-c-last{ font-variant-numeric:tabular-nums; }
 .user-caret{ width:16px; height:16px; flex:none; opacity:.85; }
+.av-why{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin:-4px .1rem -4px -4px; padding:0; border:0; border-radius:50%; background:none; color:inherit; cursor:pointer; }
+.av-why:hover, .av-why[aria-expanded="true"]{ background:var(--warn-bg); }
+.why{ display:block; margin-top:.3rem; padding:.4rem .55rem; border-radius:6px; background:var(--warn-bg); color:var(--fg); font-size:.8125rem; line-height:1.35; max-width:22rem; }
 .av{ display:flex; flex-direction:column; gap:.15rem; }
 .av-n{ font-size:1.15rem; font-weight:600; font-variant-numeric:tabular-nums; line-height:1.2; }
 .av-st{ display:inline-flex; align-items:center; gap:.3rem; font-size:.85rem; font-weight:400; color:var(--muted); }
@@ -519,6 +522,11 @@ const P = {
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   circle:'<circle cx="12" cy="12" r="8"/>',
   cal:'<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  bank:'<path d="M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18M12 3 3 8h18z"/>',
+  target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
+  grad:'<path d="M2 9.5 12 5l10 4.5-10 4.5z"/><path d="M6 11.5V16c3.5 2.5 8.5 2.5 12 0v-4.5M22 9.5V14"/>',
+  cert:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M7 8.5h10M7 12h5"/><circle cx="16.5" cy="15.5" r="2.5"/><path d="M15.3 17.7 14.5 21l2-1 2 1-.8-3.3"/>',
+  chart:'<path d="M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7M3 20h18"/>',
   truck:'<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.3c1.9.8 3 2.9 3 5.7"/>',
   megaphone:'<path d="M4 10v4h3l8 4.5V5.5L7 10z"/><path d="M18.5 9a4 4 0 0 1 0 6"/>',
@@ -620,8 +628,14 @@ const prog = v => { const c = 97.4, f = Math.max(0, Math.min(100, v)) / 100 * c;
 const stx = (k, t) => `<span class="st st-${k}"><span class="st-dot" aria-hidden="true"></span>${ic(k === 'warn' ? 'alert' : k === 'ok' ? 'check' : 'circle', 'st-ic')}${t}</span>`;
 /* Avance: porcentaje acumulado y, debajo, el estado del producto con ícono (idea de B) */
 function avance(p){
-  const k = p.retired ? ['off','Eliminado','x'] : pendiente(p) ? ['warn',`Falta avance de ${mesCorte()}`,'alert'] : ({'Finalizado':['ok','Finalizado','check'],'En curso':['off','En curso','clock'],'Sin iniciar':['off','Sin iniciar','circle']})[estadoP(p)];
-  return `<div class="av"><b class="av-n">${p.retired ? 'No suma' : pctf(acum(p)).replace('%',' %')}</b><span class="av-st av-${k[0]}">${ic(k[2])}${k[1]}</span></div>`;
+  const k = p.retired ? ['off','Eliminado','x'] : pendiente(p) ? ['warn','Falta avance','alert'] : ({'Finalizado':['ok','Finalizado','check'],'En curso':['off','En curso','clock'],'Sin iniciar':['off','Sin iniciar','circle']})[estadoP(p)];
+  const n = `<b class="av-n">${p.retired ? 'No suma' : pctf(acum(p)).replace('%',' %')}</b>`;
+  if (!p.retired && pendiente(p)){
+    const ds = active(p).map(h => h.date).sort(); const u = ds[ds.length-1];
+    return `<div class="av">${n}<span class="av-st av-warn"><button type="button" class="av-why" data-act="why" data-pid="${p.id}" aria-expanded="false" aria-controls="why-${p.id}" aria-label="Ver qué avance falta en ${esc(p.name)}" title="Ver qué avance falta">${ic('alert')}</button>Falta avance</span>
+      <span class="why" id="why-${p.id}" hidden>Falta el avance de <b>${mesCorte()}</b>. ${u ? `Último registro: ${fd(u)}.` : 'Aún no tiene registros.'} El corte cierra el ${fd(CORTE)}.</span></div>`;
+  }
+  return `<div class="av">${n}<span class="av-st av-${k[0]}">${ic(k[2])}${k[1]}</span></div>`;
 }
 /* Último avance: fecha del registro vigente más reciente; explica "Falta avance" sin desplegar */
 function ultimo(p){
@@ -688,13 +702,14 @@ function renderBottom(){
 
 /* ---------- Pantallas ---------- */
 const MODULES = [
-  ['providers','Proveedores','Registro y evaluación de proveedores','truck'],
-  ['allies','Entidades aliadas','Convenios y contactos institucionales','users'],
-  ['calls','Oportunidades y convocatorias','Convocatorias abiertas y postulaciones','megaphone'],
-  ['projects','Proyectos de Investigación','Fichas, productos y avances de investigación','flask'],
-  ['training','Formación','Programas, cursos y participantes','book'],
-  ['work','Laboral','Contratos, novedades y certificados','brief'],
-  ['docs','Documentación institucional','Políticas, formatos y manuales','file']
+  ['providers','Proveedores','Proveedores y cotizaciones para el presupuesto de las propuestas','truck'],
+  ['allies','Entidades aliadas','Organizaciones, aliados y grupos de interés de CINDE','bank'],
+  ['calls','Oportunidades y convocatorias','Convocatorias de financiamiento, propuestas y presupuestos','target'],
+  ['projects','Proyectos de Investigación','Fichas, productos y avances de los proyectos','flask'],
+  ['training','Formación','Programas académicos, estudiantes y docentes','grad'],
+  ['docs','Documentación institucional','Procesos, subprocesos y documentos de la Fundación','file'],
+  ['certs','Certificados','Solicitud y verificación de certificados','cert'],
+  ['reports','Reportes','Indicadores y reportes institucionales','chart']
 ];
 function accessChip(){
   if (S.access === 'none') return chip('muted','Sin acceso','lock');
@@ -728,7 +743,7 @@ function vProjects(){
     <thead><tr><th scope="col">Proyecto</th><th scope="col">Avance</th><th scope="col">Periodo</th><th scope="col"><span class="sr">Acciones</span></th></tr></thead>
     <tbody>${rows.map(p => `<tr class="clickable" data-proj="${p.id}">
       <td class="td-main" data-label="Proyecto"><button class="row-title" data-proj="${p.id}">${esc(p.name)}</button></td>
-      <td data-label="Avance"><div class="av"><b class="av-n">${pctf(p.av).replace('%',' %')}</b>${p.pend ? `<span class="av-st av-warn">${ic('alert')}${plural(p.pend,'producto con falta avance','productos con falta avance')} de ${mesCorte()}</span>` : p.closed ? `<span class="av-st av-ok">${ic('check')}Cerrado</span>` : `<span class="av-st">${ic('check')}Al día</span>`}</div></td>
+      <td data-label="Avance"><div class="av"><b class="av-n">${pctf(p.av).replace('%',' %')}</b>${p.closed ? `<span class="av-st av-ok">${ic('check')}Cerrado</span>` : `<span class="av-st">${ic('clock')}En curso</span>`}</div></td>
       <td data-label="Periodo" style="white-space:nowrap">${fd(p.per[0])} – ${fd(p.per[1])}</td>
       <td class="td-actions"><button class="btn btn-secondary btn-sm" ${p.id === 'pr1' ? 'data-go="products"' : `data-proj="${p.id}"`} aria-label="Ir a los productos de ${esc(p.name)}">Productos</button></td></tr>`).join('') || `<tr><td colspan="5" class="placeholder">No hay proyectos que coincidan con “${esc(S.params.q)}”.</td></tr>`}
     </tbody></table></div>`;
@@ -775,7 +790,7 @@ function vFicha(){
   <div class="page-head"><div><p class="eyebrow">Ficha del proyecto</p><h1>Participación comunitaria de jóvenes rurales</h1></div></div>
   <div class="card" style="margin-bottom:1.25rem"><div class="summary-grid">
     <dl class="kv"><dt>Periodo</dt><dd>${PERIODO}</dd></dl>
-    <dl class="kv"><dt>Estado</dt><dd>${pc ? `<span class="av-st av-warn">${ic('alert')}${plural(pc,'producto con falta avance','productos con falta avance')} de ${mesCorte()}</span>` : `<span class="av-st">${ic('check')}Al día</span>`}</dd></dl>
+    <dl class="kv"><dt>Estado</dt><dd><span class="av-st">${ic('clock')}En curso</span></dd></dl>
     <dl class="kv"><dt>Avance general</dt><dd>${pctf(projAvance()).replace('%',' %')}</dd></dl>
     <dl class="kv"><dt>Tu rol</dt><dd>Investigador principal</dd></dl>
   </div></div>
@@ -1069,7 +1084,7 @@ function faq(){
   modal({ tone:'info', icon:'info', title:'Preguntas frecuentes', wide:true,
     body:`<div class="faq">
       <details open><summary>¿Qué porcentaje debo escribir?</summary><p>Solo los puntos nuevos de este periodo. Si el producto iba en 20 % y ahora llega a 35 %, escribe 15. El sistema suma los registros para calcular el acumulado.</p></details>
-      <details><summary>¿Qué es el corte de seguimiento?</summary><p>Es la fecha límite para reportar el avance del mes. Un producto aparece como "Falta avance de ${mesCorte()}" si no tiene registros desde el ${fd(CORTE_INI)}; por eso conviene mirar la columna "Último avance". El corte actual cierra el ${fd(CORTE)}.</p></details>
+      <details><summary>¿Qué es el corte de seguimiento?</summary><p>Es la fecha límite para reportar el avance del mes. Un producto aparece con "Falta avance" si no tiene registros desde el ${fd(CORTE_INI)}. Pulsa el ícono ⚠ junto al estado para ver qué mes falta y su último registro. El corte actual cierra el ${fd(CORTE)}.</p></details>
       <details><summary>Me equivoqué al registrar. ¿Cómo lo corrijo?</summary><p>Justo después de guardar puedes pulsar "Deshacer" durante 10 segundos. Después, abre el producto, busca el registro en el historial y pulsa "Corregir": escribes el motivo y el valor correcto en el mismo paso. El registro equivocado queda tachado, con el motivo, y deja de sumar.</p></details>
       <details><summary>¿Por qué no puedo registrar más avance?</summary><p>El acumulado de un producto no puede superar 100 %. Si ya está completo, corrige o anula un registro anterior.</p></details>
     </div>`,
@@ -1401,6 +1416,7 @@ document.addEventListener('click', e => {
     case 'faq': faq(); break;
     case 'wnext': S.params.w = ((S.params.w || 0) + 1) % 3; render(); { const w = $('.watch'); w && w.focus(); } break;
     case 'a11y': a11yPanel(); break;
+    case 'why': { const o = t.getAttribute('aria-expanded') === 'true'; t.setAttribute('aria-expanded', String(!o)); const w = document.getElementById('why-'+t.dataset.pid); if (w) w.hidden = o; break; }
     case 'sec': { const v = t.dataset.sec; if (v === 'products') go('products'); else go('ficha', { sec:v }); const b = $('#tab-'+v); if (b) b.focus(); break; }
     case 'acctoggle': { const ds = [...document.querySelectorAll('details.acc')]; const open = ds.some(x => !x.open); ds.forEach(x => x.open = open); t.textContent = open ? 'Contraer todo' : 'Desplegar todo'; t.setAttribute('aria-pressed', String(open)); break; }
     case 'more': { const m = t.nextElementSibling; const open = !m.hidden; closeMenus(); if (!open){ m.hidden = false; t.setAttribute('aria-expanded','true'); const f = m.querySelector('button'); f && f.focus(); } break; }
