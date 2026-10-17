@@ -217,6 +217,25 @@ input:focus, textarea:focus{ outline:3px solid color-mix(in srgb, var(--accent) 
   .sec-tab[aria-selected="true"]{ border-bottom-color:var(--primary); }
   .secpanel{ padding:.9rem; }
 }
+.dg-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.dg-card{ border:1px solid var(--line); border-radius:var(--r); padding:.9rem 1rem; min-width:0; }
+.dg-wide{ grid-column:1 / -1; }
+.dg-h{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.6rem; }
+.dg-h h3{ margin:0; font-family:var(--f-display); font-size:1rem; }
+.dg-dl{ display:grid; grid-template-columns:minmax(120px,170px) 1fr; gap:.45rem .9rem; margin:0; }
+.dg-dl dt{ color:var(--muted); font-size:.9rem; } .dg-dl dd{ margin:0; min-width:0; }
+.dg-mono{ font-family:ui-monospace,'SFMono-Regular',Menlo,monospace; font-weight:600; letter-spacing:.02em; }
+.dg-big{ font-size:1.6rem; font-weight:600; font-variant-numeric:tabular-nums; }
+.dg-note{ margin:.5rem 0 0; color:var(--muted); font-size:.875rem; }
+.dg-alert{ display:flex; gap:.5rem; margin:.7rem 0 0; padding:.5rem .65rem; border-radius:6px; background:var(--warn-bg); font-size:.875rem; }
+.dg-alert b{ color:var(--warn); } .dg-alert svg.i{ color:var(--warn); flex:none; }
+.dg-empty{ margin:.75rem 0 0; padding-top:.6rem; border-top:1px dashed var(--line); color:var(--muted); font-size:.875rem; }
+.dg-empty .n-link{ padding:0; min-height:auto; display:inline; }
+.dg-lock{ display:flex; flex-wrap:wrap; align-items:center; gap:.3rem; margin-top:.75rem; padding-top:.6rem; border-top:1px dashed var(--line); color:var(--muted); font-size:.875rem; }
+.dg-lock svg.i{ width:14px; height:14px; } .dg-lock .n-link{ padding:0; min-height:auto; }
+.dg-link{ padding:0; min-height:auto; text-align:left; }
+@media (max-width: 900px){ .dg-grid{ grid-template-columns:1fr; } }
+@media (max-width: 560px){ .dg-dl{ grid-template-columns:1fr; gap:.1rem; } .dg-dl dd{ margin-bottom:.45rem; } }
 .acc-tools{ display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:.75rem; flex-wrap:wrap; }
 .accs{ display:flex; flex-direction:column; gap:.6rem; }
 details.acc{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r); }
@@ -309,7 +328,7 @@ tr.retired td{ color:var(--muted); }
 .head-actions{ display:flex; gap:.6rem; flex-wrap:wrap; }
 /* Productos con historial desplegable */
 .plist{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
-.prow{ display:grid; grid-template-columns:minmax(0,2.4fr) minmax(0,1fr) minmax(0,1.1fr) 200px; gap:1rem; align-items:center; padding:.75rem 1rem; }
+.prow{ display:grid; grid-template-columns:minmax(0,2.6fr) minmax(0,1fr) minmax(0,1.2fr) 165px; gap:1rem; align-items:center; padding:.75rem 1rem; }
 .phead{ background:var(--surface-2); border-bottom:1px solid var(--line); font-family:var(--f-display); font-weight:600; font-size:.88rem; color:var(--muted); }
 .pitem + .pitem{ border-top:1px solid var(--line); }
 .pitem > .prow{ cursor:pointer; }
@@ -372,6 +391,11 @@ tr.retired td{ color:var(--muted); }
 .st-warn .st-dot{ background:#D9901A; } .st-ok .st-dot{ background:var(--ok); }
 .p-c-last{ font-variant-numeric:tabular-nums; }
 .user-caret{ width:16px; height:16px; flex:none; opacity:.85; }
+.seg{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface); }
+.seg button{ display:inline-flex; align-items:center; gap:.35rem; min-height:38px; padding:.4rem .85rem; border:0; background:none; font:inherit; font-size:.9rem; color:var(--fg); cursor:pointer; }
+.seg button + button{ border-left:1px solid var(--line); }
+.seg button svg.i{ width:15px; height:15px; color:var(--warn); }
+.seg button[aria-pressed="true"]{ background:var(--primary-soft); font-weight:600; box-shadow:inset 0 -3px 0 var(--primary); }
 .av-why{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin:-4px .1rem -4px -4px; padding:0; border:0; border-radius:50%; background:none; color:inherit; cursor:pointer; }
 .av-why:hover, .av-why[aria-expanded="true"]{ background:var(--warn-bg); }
 .why{ display:block; margin-top:.3rem; padding:.4rem .55rem; border-radius:6px; background:var(--warn-bg); color:var(--fg); font-size:.8125rem; line-height:1.35; max-width:22rem; }
@@ -756,18 +780,35 @@ function productsPanel(){
   h = h.replace('<h1>Productos</h1>', '<h2 class="sec-h">Productos</h2>').replace(/<p class="sub">Proyecto:[\s\S]*?<\/p>/, '');
   return h;
 }
+/* Datos generales agrupados: identificación, estado y avance, fechas, vínculos y descripción */
+function datosGenerales(){
+  const J = S.proj, av = projAvance(), est = 'En curso';
+  const meses = (() => { const a = new Date(PER_INI), b = new Date(PER_FIN); return (b.getFullYear()-a.getFullYear())*12 + b.getMonth()-a.getMonth() + 1; })();
+  const lock = `<span class="dg-lock">${ic('lock')}Solo los cambia el administrador · <button class="n-link" data-act="reqchange" data-what="Los datos de identificación y las fechas">Solicitar cambio</button></span>`;
+  const empty = (items, what) => `<p class="dg-empty">Sin registrar: ${items.join(' · ')} · <button class="n-link" data-act="reqchange" data-what="${what}">Completar</button></p>`;
+  const alerta = est === 'Finalizado' && av < 100 ? `<p class="dg-alert">${ic('alert')}<span><b>Revisar:</b> el proyecto está finalizado con un avance de ${pctf(av).replace('%',' %')}. Confirma el estado o completa el avance.</span></p>` : '';
+  return `<div class="dg-grid">
+    <section class="dg-card"><div class="dg-h"><h3>Identificación</h3></div>
+      <dl class="dg-dl"><dt>Código interno</dt><dd class="dg-mono">ID-2026-014</dd><dt>Tipo</dt><dd>Proyecto</dd><dt>Sede de coordinación</dt><dd>Manizales</dd><dt>Oferta propia CINDE</dt><dd>No</dd></dl>${lock}</section>
+    <section class="dg-card"><div class="dg-h"><h3>Estado y avance</h3></div>
+      <div class="av"><b class="dg-big">${pctf(av).replace('%',' %')}</b><span class="av-st">${ic('clock')}${est}</span></div>
+      <p class="dg-note">Se calcula con el avance de los productos.</p>${alerta}</section>
+    <section class="dg-card"><div class="dg-h"><h3>Fechas</h3></div>
+      <dl class="dg-dl"><dt>Inicio</dt><dd>${fd(PER_INI)}</dd><dt>Cierre</dt><dd>${fd(PER_FIN)}</dd><dt>Duración</dt><dd>${meses} meses</dd></dl>
+      ${empty(['fecha de prórroga'],'La fecha de prórroga')}</section>
+    <section class="dg-card"><div class="dg-h"><h3>Vínculos y referencias</h3></div>
+      <dl class="dg-dl"><dt>Convocatoria de origen</dt><dd><button class="n-link dg-link" data-act="reqchange" data-what="La convocatoria de origen">0981 · Convocatoria interna de investigación social 2026</button></dd></dl>
+      ${empty(['código externo','n.º de convenio o documento jurídico','convenio vinculado','CEA'],'Los vínculos y referencias')}</section>
+    <section class="dg-card dg-wide"><div class="dg-h"><h3>Descripción</h3>${editBtn('edit-general','Editar')}</div>
+      <dl class="dg-dl"><dt>Objetivo</dt><dd>${esc(J.objetivo)}</dd><dt>Impacto esperado</dt><dd>${esc(J.impacto)}</dd></dl></section>
+  </div><p class="ex">Datos de ejemplo.</p>`;
+}
 function vFicha(){
   const pc = pendCount(); const J = S.proj;
   const sec = S.screen === 'products' ? 'products' : (S.params.sec || 'general');
   const ok = '<span class="sec-st sec-ok">'+ic('check')+'<span class="sr">Completa</span></span>';
   const SECS = [
-    ['general','General', ok, `<h2 class="sec-h">General</h2><div class="acc-actions">${lockNote('El código y el periodo')}${editBtn('edit-general','Editar objetivo e impacto')}</div>
-      <dl class="def">
-        <dt>Código</dt><dd>ID-2026-014</dd>
-        <dt>Periodo</dt><dd>${PERIODO}</dd>
-        <dt>Objetivo</dt><dd>${esc(J.objetivo)}</dd>
-        <dt>Impacto esperado</dt><dd>${esc(J.impacto)}</dd>
-      </dl>`],
+    ['general','General', ok, `<h2 class="sec-h">Datos generales</h2>${datosGenerales()}`],
     ['team','Integrantes', ok, `<h2 class="sec-h">Integrantes</h2><div class="acc-actions">${editBtn('edit-team','Editar integrantes')}</div>
       <div class="mini-wrap"><table class="mini"><thead><tr><th>Nombre</th><th>Rol</th><th>Dedicación</th></tr></thead><tbody>
         ${J.team.map(m => `<tr><td>${esc(m.name)}${m.name===ME?' <span class="muted">(tú)</span>':''}</td><td>${esc(m.rol)}</td><td>${esc(m.ded)}</td></tr>`).join('')}
@@ -836,7 +877,7 @@ function vProducts(){
   <div class="page-head"><div><div class="title-row"><h1>Productos</h1><button class="info-btn" data-act="faq" aria-label="Preguntas frecuentes" title="Preguntas frecuentes">${ic('info')}</button></div><p class="sub">Proyecto: <b>Participación comunitaria de jóvenes rurales</b></p></div>
     <button class="btn btn-secondary" data-act="addprod">${ic('plus')}Agregar producto</button></div>
     <div class="toolbar"><div class="search"><label for="qprod" class="sr">Buscar producto</label><div class="box">${ic('search')}<input id="qprod" type="search" placeholder="Buscar por nombre o tipo" value="${esc(S.params.q||'')}" autocomplete="off"></div></div>
-    <div class="row">${pendCount() ? `<button class="n-link" data-act="showpend" aria-pressed="${S.params.pend?'true':'false'}">${S.params.pend ? 'Ver todos los productos' : `Ver pendientes de ${mesCorte()} (${pendCount()})`}</button>` : ''}${(() => { const all = list.length && list.every(p => isOpen(p.id)); return `<button class="n-link" data-act="${all ? 'pcollapse' : 'pexpand'}" aria-pressed="${all}">${all ? 'Contraer todo' : 'Desplegar todo'}</button>`; })()}</div></div>
+    </div>
   <div class="plist" role="list" aria-label="Productos del proyecto">
     <div class="prow phead" aria-hidden="true"><span>Producto</span><span>Último avance</span><span>Avance acumulado</span><span></span></div>
     ${list.map(p => { const o = isOpen(p.id); return `<div class="pitem ${o?'open':''} ${p.retired?'retired':''}" role="listitem">
@@ -844,7 +885,7 @@ function vProducts(){
         <div class="p-c-name"><button class="ptoggle" id="pt-${p.id}" data-prod="${p.id}" aria-expanded="${o}" aria-controls="pp-${p.id}">${ic('chev','chev')}<span class="p-name"><strong>${esc(p.name)}</strong><small>Responsable: ${esc(p.resp)}${p.resp===ME?' (tú)':''}</small></span></button></div>
         <div class="p-c-last">${ultimo(p)}</div>
         <div class="p-c-prog">${avance(p)}</div>
-        <div class="p-act">${canAdd(p) && pendiente(p) ? `<button class="btn btn-primary btn-sm" data-reg="${p.id}">${ic('plus')}Registrar avance</button>` : ''}</div>
+        <div class="p-act">${canAdd(p) && pendiente(p) ? `<button class="btn btn-secondary btn-sm" data-reg="${p.id}">${ic('plus')}Registrar avance</button>` : ''}</div>
 
       </div>
       ${o ? productPanel(p) : ''}
@@ -1420,6 +1461,7 @@ document.addEventListener('click', e => {
     case 'sec': { const v = t.dataset.sec; if (v === 'products') go('products'); else go('ficha', { sec:v }); const b = $('#tab-'+v); if (b) b.focus(); break; }
     case 'acctoggle': { const ds = [...document.querySelectorAll('details.acc')]; const open = ds.some(x => !x.open); ds.forEach(x => x.open = open); t.textContent = open ? 'Contraer todo' : 'Desplegar todo'; t.setAttribute('aria-pressed', String(open)); break; }
     case 'more': { const m = t.nextElementSibling; const open = !m.hidden; closeMenus(); if (!open){ m.hidden = false; t.setAttribute('aria-expanded','true'); const f = m.querySelector('button'); f && f.focus(); } break; }
+    case 'pfilter': S.params.pend = t.dataset.v === 'pend'; render(); { const f = $(`[data-act="pfilter"][data-v="${t.dataset.v}"]`); f && f.focus(); } break;
     case 'showpend': S.params.pend = !S.params.pend; render(); { const f = $('[data-act="showpend"]'); f && f.focus(); } break;
     case 'delprod': deleteProduct(d.id); break;
     case 'editprod': editProduct(d.id); break;
