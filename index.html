@@ -197,6 +197,26 @@ input:focus, textarea:focus{ outline:3px solid color-mix(in srgb, var(--accent) 
 .kv dt{ font-size:.875rem; color:var(--muted); font-weight:400; margin-bottom:.2rem; }
 .kv dd{ margin:0; font-weight:700; }
 .kv{ margin:0; }
+.fx{ display:grid; grid-template-columns:240px minmax(0,1fr); gap:1.5rem; align-items:start; }
+.secnav{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:.6rem; position:sticky; top:1rem; }
+.secnav-t{ margin:.2rem .5rem .5rem; font-size:.8125rem; font-weight:600; color:var(--muted); }
+.secnav [role=tablist]{ display:flex; flex-direction:column; gap:2px; position:relative; }
+.sec-tab{ position:relative; display:flex; justify-content:space-between; align-items:center; gap:.5rem; width:100%; padding:.55rem .7rem; border:0; border-left:3px solid transparent; border-radius:6px; background:none; font:inherit; font-size:.95rem; color:var(--fg); text-align:left; cursor:pointer; }
+.sec-tab:hover{ background:var(--surface-2); }
+.sec-tab[aria-selected="true"]{ background:var(--primary-soft); border-left-color:var(--primary); font-weight:600; }
+.sec-st{ display:inline-flex; align-items:center; font-size:.8125rem; white-space:nowrap; }
+.sec-st svg.i{ width:15px; height:15px; } .sec-ok{ color:var(--ok); } .sec-warn{ color:var(--warn); font-weight:600; }
+.secpanel{ min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:1.1rem 1.25rem; }
+.sec-h{ font-family:var(--f-display); font-size:1.15rem; margin:0 0 .75rem; }
+.secpanel .page-head{ margin-bottom:.75rem; }
+@media (max-width: 760px){
+  .fx{ grid-template-columns:minmax(0,1fr); gap:1rem; } .fx > *{ min-width:0; }
+  .secnav{ position:static; padding:.4rem; }
+  .secnav [role=tablist]{ flex-direction:row; overflow-x:auto; gap:.3rem; }
+  .sec-tab{ width:auto; white-space:nowrap; border-left:0; border-bottom:3px solid transparent; border-radius:6px 6px 0 0; }
+  .sec-tab[aria-selected="true"]{ border-bottom-color:var(--primary); }
+  .secpanel{ padding:.9rem; }
+}
 .acc-tools{ display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:.75rem; flex-wrap:wrap; }
 .accs{ display:flex; flex-direction:column; gap:.6rem; }
 details.acc{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r); }
@@ -234,7 +254,7 @@ details.acc[open] > summary .chev{ transform:rotate(90deg); }
 @media (max-width: 760px){
   .bb-inner{ padding-inline:.25rem; }
   .bb-tabs{ width:100%; justify-content:space-around; }
-  .tab{ flex-direction:column; gap:.1rem; font-size:.72rem; padding:.35rem .3rem; flex:1; }
+  .tab{ flex-direction:column; gap:.1rem; font-size:.8125rem; padding:.35rem .3rem; flex:1; }
   .user-name, .tb-btn .lbl{ display:none; }
   .tb-logo img{ height:34px; }
   h1{ font-size:1.45rem; }
@@ -629,7 +649,7 @@ function notice(pc, link){
 /* ---------- Navegación ---------- */
 const CRUMBS = {
   home:[], projects:[['home','Inicio']], ficha:[['home','Inicio'],['projects','Proyectos de Investigación']],
-  products:[['home','Inicio'],['projects','Proyectos de Investigación'],['ficha','Participación comunitaria…']],
+  products:[['home','Inicio'],['projects','Proyectos de Investigación']],
   module:[['home','Inicio']], formats:[['home','Inicio']]
 };
 const BACKLBL = { home:'Inicio', projects:'Proyectos', ficha:'Ficha del proyecto', products:'Productos' };
@@ -705,11 +725,10 @@ function vProjects(){
     <button class="btn btn-secondary" data-act="export">${ic('download')}Exportar lista</button>
   </div>
   <div class="tbl-wrap"><table class="stacked"><caption class="sr">Lista de proyectos</caption>
-    <thead><tr><th scope="col">Proyecto</th><th scope="col">Estado</th><th scope="col">Avance</th><th scope="col">Periodo</th><th scope="col"><span class="sr">Acciones</span></th></tr></thead>
+    <thead><tr><th scope="col">Proyecto</th><th scope="col">Avance</th><th scope="col">Periodo</th><th scope="col"><span class="sr">Acciones</span></th></tr></thead>
     <tbody>${rows.map(p => `<tr class="clickable" data-proj="${p.id}">
       <td class="td-main" data-label="Proyecto"><button class="row-title" data-proj="${p.id}">${esc(p.name)}</button></td>
-      <td data-label="Estado">${p.pend ? stx('warn', plural(p.pend,'avance pendiente','avances pendientes')) : p.closed ? stx('ok','Cerrado') : stx('off','Al día')}</td>
-      <td data-label="Avance">${prog(p.av)}</td>
+      <td data-label="Avance"><div class="av"><b class="av-n">${pctf(p.av).replace('%',' %')}</b>${p.pend ? `<span class="av-st av-warn">${ic('alert')}${plural(p.pend,'producto con falta avance','productos con falta avance')} de ${mesCorte()}</span>` : p.closed ? `<span class="av-st av-ok">${ic('check')}Cerrado</span>` : `<span class="av-st">${ic('check')}Al día</span>`}</div></td>
       <td data-label="Periodo" style="white-space:nowrap">${fd(p.per[0])} – ${fd(p.per[1])}</td>
       <td class="td-actions"><button class="btn btn-secondary btn-sm" ${p.id === 'pr1' ? 'data-go="products"' : `data-proj="${p.id}"`} aria-label="Ir a los productos de ${esc(p.name)}">Productos</button></td></tr>`).join('') || `<tr><td colspan="5" class="placeholder">No hay proyectos que coincidan con “${esc(S.params.q)}”.</td></tr>`}
     </tbody></table></div>`;
@@ -717,47 +736,55 @@ function vProjects(){
 const accSum = (id, t, d, st) => `<summary><span class="txt"><strong>${t}</strong><span>${d}</span></span>${st}${ic('chev','chev')}</summary>`;
 const editBtn = (act, label) => `<button class="n-link" data-act="${act}">${ic('pencil')}${label||'Editar'}</button>`;
 const lockNote = what => `<span class="lock">${ic('lock')}${what} solo los cambia el administrador.</span><button class="n-link" data-act="reqchange" data-what="${esc(what)}">Solicitar cambio</button>`;
+function productsPanel(){
+  let h = vProducts().replace(crumbs('Productos'), '');
+  h = h.replace('<h1>Productos</h1>', '<h2 class="sec-h">Productos</h2>').replace(/<p class="sub">Proyecto:[\s\S]*?<\/p>/, '');
+  return h;
+}
 function vFicha(){
   const pc = pendCount(); const J = S.proj;
-  const done = stx('ok','Completa');
-  const o = id => (S.params.open || '') === id ? 'open' : '';
-  return `${crumbs('Ficha del proyecto')}
-  <div class="page-head"><div><p class="eyebrow">Ficha del proyecto</p><h1>Participación comunitaria de jóvenes rurales</h1></div></div>
-  <div class="card" style="margin-bottom:1.5rem"><div class="summary-grid">
-    <dl class="kv"><dt>Periodo</dt><dd>${PERIODO}</dd></dl>
-    <dl class="kv"><dt>Estado</dt><dd>${pc ? stx('warn','Avance pendiente') : stx('off','Al día')}</dd></dl>
-    <dl class="kv"><dt>Avance general</dt><dd>${prog(projAvance())}</dd></dl>
-    <dl class="kv"><dt>Tu rol</dt><dd>Investigador principal</dd></dl>
-  </div></div>
-  <div class="acc-tools"><h2>Secciones de la ficha</h2><div class="row"><button class="n-link" data-act="acctoggle" aria-pressed="false">Desplegar todo</button></div></div>
-  <div class="accs">
-    <details class="acc" ${o('general')}>${accSum('general','General','Información general', done)}
-      <div class="acc-body"><div class="acc-actions">${lockNote('El código y el periodo')}${editBtn('edit-general','Editar objetivo e impacto')}</div>
+  const sec = S.screen === 'products' ? 'products' : (S.params.sec || 'general');
+  const ok = '<span class="sec-st sec-ok">'+ic('check')+'<span class="sr">Completa</span></span>';
+  const SECS = [
+    ['general','General', ok, `<h2 class="sec-h">General</h2><div class="acc-actions">${lockNote('El código y el periodo')}${editBtn('edit-general','Editar objetivo e impacto')}</div>
       <dl class="def">
         <dt>Código</dt><dd>ID-2026-014</dd>
         <dt>Periodo</dt><dd>${PERIODO}</dd>
         <dt>Objetivo</dt><dd>${esc(J.objetivo)}</dd>
         <dt>Impacto esperado</dt><dd>${esc(J.impacto)}</dd>
-      </dl></div></details>
-    <details class="acc" ${o('team')}>${accSum('team','Integrantes', `${plural(J.team.length,'integrante','integrantes')}`, done)}
-      <div class="acc-body"><div class="acc-actions">${editBtn('edit-team','Editar integrantes')}</div>
+      </dl>`],
+    ['team','Integrantes', ok, `<h2 class="sec-h">Integrantes</h2><div class="acc-actions">${editBtn('edit-team','Editar integrantes')}</div>
       <div class="mini-wrap"><table class="mini"><thead><tr><th>Nombre</th><th>Rol</th><th>Dedicación</th></tr></thead><tbody>
         ${J.team.map(m => `<tr><td>${esc(m.name)}${m.name===ME?' <span class="muted">(tú)</span>':''}</td><td>${esc(m.rol)}</td><td>${esc(m.ded)}</td></tr>`).join('')}
-      </tbody></table></div></div></details>
-    <details class="acc" ${o('costs')}>${accSum('costs','Entidades y costos','Entidades y presupuesto asociado', done)}
-      <div class="acc-body"><div class="acc-actions">${lockNote('Las entidades y los aportes')}</div>
+      </tbody></table></div>`],
+    ['costs','Entidades y costos', ok, `<h2 class="sec-h">Entidades y costos</h2><div class="acc-actions">${lockNote('Las entidades y los aportes')}</div>
       <div class="mini-wrap"><table class="mini"><thead><tr><th>Entidad</th><th>Participación</th><th class="num">Aporte (COP)</th></tr></thead><tbody>
         <tr><td>Fundación CINDE</td><td>Ejecutora</td><td class="num">$ 85.000.000</td></tr>
         <tr><td>Entidad cofinanciadora</td><td>Cofinanciadora</td><td class="num">$ 40.000.000</td></tr>
         <tr><td><b>Total</b></td><td></td><td class="num"><b>$ 125.000.000</b></td></tr>
-      </tbody></table></div><p class="ex">Datos de ejemplo.</p></div></details>
-    <details class="acc" ${o('groups')}>${accSum('groups','Grupos de investigación','Grupos vinculados', done)}
-      <div class="acc-body"><div class="acc-actions">${editBtn('edit-groups')}</div>
-      <dl class="def"><dt>Grupo principal</dt><dd>${esc(J.grupo)}</dd><dt>Línea</dt><dd>${esc(J.linea)}</dd></dl></div></details>
-    <details class="acc" ${o('orgs')}>${accSum('orgs','Organizaciones beneficiarias','Organizaciones vinculadas', done)}
-      <div class="acc-body"><div class="acc-actions">${editBtn('edit-orgs')}</div>
-      <dl class="def"><dt>Organizaciones</dt><dd>${esc(J.orgs)}</dd><dt>Población</dt><dd>${esc(J.poblacion)}</dd></dl></div></details>
-    <div class="acc acc-static"><span class="txt"><strong>Productos</strong><span>${plural(live().length,'producto activo','productos activos')} · avance general ${pctf(projAvance())}</span></span>${pc ? stx('warn', plural(pc,'pendiente','pendientes')) : stx('ok','Al día')}<button class="btn btn-secondary btn-sm" data-go="products">Ir a Productos${ic('chev')}</button></div>
+      </tbody></table></div><p class="ex">Datos de ejemplo.</p>`],
+    ['groups','Grupos de investigación', ok, `<h2 class="sec-h">Grupos de investigación</h2><div class="acc-actions">${editBtn('edit-groups')}</div>
+      <dl class="def"><dt>Grupo principal</dt><dd>${esc(J.grupo)}</dd><dt>Línea</dt><dd>${esc(J.linea)}</dd></dl>`],
+    ['orgs','Organizaciones beneficiarias', ok, `<h2 class="sec-h">Organizaciones beneficiarias</h2><div class="acc-actions">${editBtn('edit-orgs')}</div>
+      <dl class="def"><dt>Organizaciones</dt><dd>${esc(J.orgs)}</dd><dt>Población</dt><dd>${esc(J.poblacion)}</dd></dl>`],
+    ['products','Productos', pc ? `<span class="sec-st sec-warn">${plural(pc,'pendiente','pendientes')}</span>` : ok, null]
+  ];
+  const cur = SECS.find(x => x[0] === sec) || SECS[0];
+  setTimeout(() => { const a = document.querySelector('.sec-tab[aria-selected="true"]'); const l = a && a.parentElement; if (l && l.scrollWidth > l.clientWidth) l.scrollLeft = a.offsetLeft - 8; }, 0);
+  return `${crumbs('Ficha del proyecto')}
+  <div class="page-head"><div><p class="eyebrow">Ficha del proyecto</p><h1>Participación comunitaria de jóvenes rurales</h1></div></div>
+  <div class="card" style="margin-bottom:1.25rem"><div class="summary-grid">
+    <dl class="kv"><dt>Periodo</dt><dd>${PERIODO}</dd></dl>
+    <dl class="kv"><dt>Estado</dt><dd>${pc ? `<span class="av-st av-warn">${ic('alert')}${plural(pc,'producto con falta avance','productos con falta avance')} de ${mesCorte()}</span>` : `<span class="av-st">${ic('check')}Al día</span>`}</dd></dl>
+    <dl class="kv"><dt>Avance general</dt><dd>${pctf(projAvance()).replace('%',' %')}</dd></dl>
+    <dl class="kv"><dt>Tu rol</dt><dd>Investigador principal</dd></dl>
+  </div></div>
+  <div class="fx">
+    <nav class="secnav" aria-label="Secciones del proyecto"><p class="secnav-t" id="secnav-t">Secciones del proyecto</p>
+      <div role="tablist" aria-orientation="vertical" aria-labelledby="secnav-t">
+      ${SECS.map(x => `<button class="sec-tab" role="tab" id="tab-${x[0]}" data-act="sec" data-sec="${x[0]}" aria-selected="${x[0]===cur[0]}" aria-controls="secpanel" tabindex="${x[0]===cur[0]?0:-1}"><span>${x[1]}</span>${x[2]}</button>`).join('')}
+      </div></nav>
+    <section class="secpanel" id="secpanel" role="tabpanel" aria-labelledby="tab-${cur[0]}">${cur[0]==='products' ? productsPanel() : cur[3]}</section>
   </div>`;
 }
 function vModule(){
@@ -853,7 +880,7 @@ function vFormats(){
       </dl></div>
   </div>`;
 }
-const VIEWS = { home:vHome, projects:vProjects, ficha:vFicha, products:vProducts, module:vModule, formats:vFormats };
+const VIEWS = { home:vHome, projects:vProjects, ficha:vFicha, products:vFicha, module:vModule, formats:vFormats };
 const TITLES = { formats:'Vista multiformato', home:'Inicio', projects:'Proyectos de Investigación', ficha:'Ficha del proyecto · Participación comunitaria', products:'Productos · Participación comunitaria' };
 function render(){ renderTop(); renderBottom(); $('#app').innerHTML = (VIEWS[S.screen]||vHome)();
   const mt = S.screen === 'module' ? (MODULES.find(x => x[0] === S.params.mod) || MODULES[0])[1] : TITLES[S.screen] || 'Inicio';
@@ -1374,6 +1401,7 @@ document.addEventListener('click', e => {
     case 'faq': faq(); break;
     case 'wnext': S.params.w = ((S.params.w || 0) + 1) % 3; render(); { const w = $('.watch'); w && w.focus(); } break;
     case 'a11y': a11yPanel(); break;
+    case 'sec': { const v = t.dataset.sec; if (v === 'products') go('products'); else go('ficha', { sec:v }); const b = $('#tab-'+v); if (b) b.focus(); break; }
     case 'acctoggle': { const ds = [...document.querySelectorAll('details.acc')]; const open = ds.some(x => !x.open); ds.forEach(x => x.open = open); t.textContent = open ? 'Contraer todo' : 'Desplegar todo'; t.setAttribute('aria-pressed', String(open)); break; }
     case 'more': { const m = t.nextElementSibling; const open = !m.hidden; closeMenus(); if (!open){ m.hidden = false; t.setAttribute('aria-expanded','true'); const f = m.querySelector('button'); f && f.focus(); } break; }
     case 'showpend': S.params.pend = !S.params.pend; render(); { const f = $('[data-act="showpend"]'); f && f.focus(); } break;
@@ -1388,6 +1416,7 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('click', e => { if (!e.target.closest('.info-wrap')) document.querySelectorAll('.info-btn[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded','false')); }, true);
+document.addEventListener('keydown', e => { const t = e.target; if (t.classList && t.classList.contains('sec-tab') && ['ArrowDown','ArrowUp','Home','End'].includes(e.key)){ e.preventDefault(); const tabs = [...document.querySelectorAll('.sec-tab')]; let k = tabs.indexOf(t); k = e.key==='Home' ? 0 : e.key==='End' ? tabs.length-1 : (k + (e.key==='ArrowDown'?1:-1) + tabs.length) % tabs.length; tabs[k].click(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.info-btn[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded','false')); });
 ['input','change'].forEach(ev => document.addEventListener(ev, e => {
   const f = e.target; if (!f.id || f.getAttribute('aria-invalid') !== 'true') return;
